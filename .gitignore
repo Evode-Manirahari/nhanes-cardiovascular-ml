@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+.ipynb_checkpoints/
+.DS_Store
+
+data/raw/
+data/processed/
+data/
+.venv/
+__pycache__/
+.ipynb_checkpoints/
+.DS_Store
+results/*.pkl
