@@ -27,14 +27,14 @@ Data were assembled from the **1999–2004 National Health and Nutrition Examina
 
 ### Preliminary outcome definition
 
-The notebook currently labels a participant positive when the linked record reports death within 60 months of the interview:
+The notebook currently labels a participant positive when `MORTSTAT == 1` and `PERMTH_INT <= 60` (death recorded within 60 months of the interview):
 
-$$
+```math
 Y_i = \begin{cases}
-1, & \text{if MORTSTAT}_i = 1 \text{ and PERMTH\_INT}_i \leq 60, \\
+1, & \text{if death is recorded within 60 months}, \\
 0, & \text{otherwise.}
 \end{cases}
-$$
+```
 
 **Important limitation:** A zero label does **not necessarily confirm that a person was observed alive for the entire five-year period**. Participants without a recorded death can have less than 60 months of follow-up. Right-censoring and complete five-year follow-up must be audited before final analysis; survival-analysis methods may be more appropriate for the eventual research endpoint.
 
@@ -70,9 +70,9 @@ Fitting preprocessing inside the training portion of every fold helps prevent in
 
 Our simplest baseline predicts **no death within five years** for every participant:
 
-$$
+```math
 \widehat{Y}_i = 0 \qquad \text{for every participant } i.
-$$
+```
 
 Because the outcome is imbalanced, this baseline achieves approximately **87.0% accuracy** while detecting none of the recorded five-year deaths. Its positive-class precision, recall, and F1-score are all zero, and its ROC-AUC is **0.500**.
 
@@ -84,13 +84,13 @@ Logistic Regression constructs a **linear score** from the predictors and transf
 
 ### General formulation
 
-$$
+```math
 z = A + Bx_1 + Cx_2 + Dx_3
-$$
+```
 
-$$
+```math
 P(Y = 1 \mid \mathbf{x}) = \sigma(z) = \frac{1}{1 + e^{-z}}
-$$
+```
 
 Here, $A$ is the intercept and $B$, $C$, and $D$ are learned feature coefficients.
 
@@ -107,14 +107,14 @@ We also trained both models on a separate **stratified 80/20 train/test split** 
 
 The resulting score equation is:
 
-$$
+```math
 \begin{aligned}
 z ={}& -5.889396 \\
 &+ 0.081101\,(\mathrm{Age}) \\
 &+ 0.026090\,(\mathrm{Troponin\ T}) \\
 &+ 0.000182\,(\mathrm{NTproBNP})
 \end{aligned}
-$$
+```
 
 The predicted model output is obtained by substituting this score into the sigmoid equation above.
 
@@ -161,33 +161,33 @@ For these binary outcomes, a **positive** means a recorded death within five yea
 
 The fraction of predictions that are correct:
 
-$$
+```math
 \mathrm{Accuracy} = \frac{TP + TN}{TP + TN + FP + FN}
-$$
+```
 
 ### Precision
 
 Of the participants predicted to die, the fraction recorded as having died:
 
-$$
+```math
 \mathrm{Precision} = \frac{TP}{TP + FP}
-$$
+```
 
 ### Recall (sensitivity)
 
 Of the participants recorded as having died, the fraction correctly identified:
 
-$$
+```math
 \mathrm{Recall} = \frac{TP}{TP + FN}
-$$
+```
 
 ### F1-score
 
 The harmonic mean of precision and recall:
 
-$$
+```math
 F_1 = 2 \times \frac{\mathrm{Precision} \times \mathrm{Recall}}{\mathrm{Precision} + \mathrm{Recall}}
-$$
+```
 
 In our baseline calculation, undefined positive-class metrics resulting from no positive predictions are reported as zero using `zero_division=0`.
 
@@ -195,13 +195,13 @@ In our baseline calculation, undefined positive-class metrics resulting from no 
 
 The receiver operating characteristic (ROC) curve plots **true positive rate** against **false positive rate** as the classification threshold changes:
 
-$$
+```math
 \mathrm{TPR} = \frac{TP}{TP + FN}
-$$
+```
 
-$$
+```math
 \mathrm{FPR} = \frac{FP}{FP + TN}
-$$
+```
 
 **ROC-AUC** summarizes the model's ability to rank recorded deaths above non-deaths across thresholds. A value of **0.500** indicates chance-level ranking, while **1.000** indicates perfect separation on the evaluated observations. It is **not** a measure of probability calibration.
 
@@ -221,9 +221,9 @@ We generated **out-of-fold predicted probability scores** with both models using
 
 The absolute model-score difference for participant $i$ is:
 
-$$
+```math
 \Delta_i = \left|\widehat{p}_{\mathrm{GLM},i} - \widehat{p}_{\mathrm{RF},i}\right|
-$$
+```
 
 The observed mean absolute difference was **0.148**, or 14.8 percentage points. At the illustrative decision threshold of **0.5**, the models gave different binary classifications for **1,633 of 9,957 participants (16.4%)**.
 
@@ -242,9 +242,9 @@ SHAP (SHapley Additive exPlanations) assigns each input feature a contribution r
 
 For the probability-output explanations used here, the additive decomposition is represented as:
 
-$$
+```math
 f(\mathbf{x}_i) \approx E[f(\mathbf{X})] + \sum_{j=1}^{3} \phi_{ij}
-$$
+```
 
 where $\phi_{ij}$ is the SHAP contribution of feature $j$ for participant $i$. Positive SHAP values raise the model output relative to its reference value, and negative values lower it. **SHAP describes model behavior; it does not demonstrate medical causation.**
 
@@ -271,27 +271,27 @@ Using the same explainer approach and reference sample makes the two models more
 
 **Top-feature agreement** measures whether both models choose the same highest-magnitude SHAP feature for a participant:
 
-$$
+```math
 j_i^{(m)} = \underset{j}{\operatorname{arg\,max}}\;\left|\phi_{ij}^{(m)}\right|
-$$
+```
 
-$$
+```math
 \mathrm{TopAgreement} = \frac{1}{N}\sum_{i=1}^{N}\mathbb{1}\left[j_i^{(\mathrm{GLM})}=j_i^{(\mathrm{RF})}\right]
-$$
+```
 
 **Complete ranking agreement** measures whether the full ordering of the three features by absolute SHAP value is identical in both models:
 
-$$
+```math
 \mathrm{FullAgreement} = \frac{1}{N}\sum_{i=1}^{N}\mathbb{1}\left[R_i^{(\mathrm{GLM})}=R_i^{(\mathrm{RF})}\right]
-$$
+```
 
 Here, $R_i^{(m)}$ is model $m$'s ordered list of the three feature indices for participant $i$.
 
 **Spearman rank correlation** measures how similarly the two models order the features for an individual participant. For $K$ features with no tied ranks, it can be written as:
 
-$$
+```math
 \rho = 1 - \frac{6\sum_{j=1}^{K}d_j^2}{K(K^2-1)}
-$$
+```
 
 where $d_j$ is the difference between the two models' ranks for feature $j$. The analysis used `scipy.stats.spearmanr` on the absolute SHAP values and averaged the per-participant correlations. With only **three features**, possible correlation values are relatively coarse; ties and near-ties also deserve further study.
 
