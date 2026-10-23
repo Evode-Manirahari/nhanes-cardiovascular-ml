@@ -1,96 +1,211 @@
-# Methodology
+# Research Methodology
 
-> **Status:** Preliminary undergraduate ML research. This document describes experiments completed so far, not a validated clinical model or a full replication of Lin et al. (2026).
+> **Research status:** Preliminary undergraduate machine-learning study. This document reports experiments completed so far; it does not describe a clinically validated prediction tool or a completed replication of the reference paper.
 
-## Research question
+## 1. Research objective
 
-If machine-learning models predict mortality similarly well, do they agree on which factors matter most for the same person?
+We are investigating whether machine-learning models with similar mortality-prediction performance identify the same factors as most influential **for an individual participant**.
 
-This initial experiment predicts **5-year all-cause mortality**, not yet cardiovascular-specific mortality. It builds on [Lin et al. (2026), *Toward practical screening of mortality risk: Insights from interpretable machine learning in NHANES*](https://pmc.ncbi.nlm.nih.gov/articles/PMC12969032/).
+Our broader research question is:
 
-## Dataset and outcome
+> If several machine-learning models predict cardiovascular mortality similarly well, do they agree on which factors are most important for the same person?
 
-We assembled a preliminary cohort from NHANES 1999–2004 and linked mortality records:
+We began with **5-year all-cause mortality** as a proof of concept. Cardiovascular-specific mortality is a planned extension, not an outcome analyzed in the results below.
 
-- Initial survey records: **31,126**.
-- Analytic cohort: **9,957** adults aged 40+.
-- `death_5yr=1`: **1,293** deaths recorded within five years.
-- `death_5yr=0`: **8,664** other participants (not necessarily all verified to have five complete years of follow-up).
+This work builds on [Lin et al. (2026), *Toward practical screening of mortality risk: Insights from interpretable machine learning in NHANES*](https://pmc.ncbi.nlm.nih.gov/articles/PMC12969032/).
 
-The preliminary binary outcome was defined using death status and `PERMTH_INT <= 60`. **Before final analysis, we must check for right-censoring**: an individual not recorded as deceased may lack the full five years of observation.
+## 2. Dataset and cohort construction
 
-The current models use three predictors: `RIDAGEYR` (age), `SSTNT` (high-sensitivity Troponin-T), and `SSBNP` (NT-proBNP). The intended 134-predictor replication dataset is **not yet finished**.
+Data were assembled from the **1999–2004 National Health and Nutrition Examination Survey (NHANES)** cycles and linked mortality records. Participant records from survey, examination, and laboratory files were joined using the NHANES participant identifier `SEQN`.
 
-## Experimental design
+| Cohort description | Count |
+|---|---:|
+| Initial NHANES participants across three cycles | 31,126 |
+| Adults aged 40+ with the required mortality linkage | 9,957 |
+| Labeled death within five years (`death_5yr = 1`) | 1,293 |
+| All other participants (`death_5yr = 0`) | 8,664 |
 
-We used stratified five-fold cross-validation (`shuffle=True`, `random_state=42`) to maintain roughly the same proportions of positive and negative outcomes across folds. Preprocessing was fitted **inside each training fold** and applied to its validation fold to avoid leakage.
+### Preliminary outcome definition
 
-- Numeric missing values: training-fold median imputation.
-- Logistic Regression (GLM): imputation, then `StandardScaler`.
-- Random Forest: imputation, without scaling.
-- Both learned models: `class_weight="balanced"` for the imbalanced outcome.
+The notebook currently labels a participant positive when the linked record reports death within 60 months of the interview:
 
-Because class weighting was used and the models were not calibrated, their output probabilities are **not validated clinical risks**.
+$$
+Y_i = \begin{cases}
+1, & \text{if MORTSTAT}_i = 1 \text{ and PERMTH\_INT}_i \leq 60, \\
+0, & \text{otherwise.}
+\end{cases}
+$$
 
-### Majority-class baseline
+**Important limitation:** A zero label does **not necessarily confirm that a person was observed alive for the entire five-year period**. Participants without a recorded death can have less than 60 months of follow-up. Right-censoring and complete five-year follow-up must be audited before final analysis; survival-analysis methods may be more appropriate for the eventual research endpoint.
 
-Always predicts `0` (no recorded death within five years). It has about **87.0% accuracy**, but precision, recall, and F1 are all zero for the positive class, and ROC-AUC is **0.500**.
+### Features in the first experiments
 
-### Logistic Regression
+The initial models use three numeric predictors:
 
-The model first computes a score, then passes it through the sigmoid function:
+| NHANES variable | Description |
+|---|---|
+| `RIDAGEYR` | Age in years |
+| `SSTNT` | High-sensitivity cardiac Troponin-T |
+| `SSBNP` | NT-proBNP |
 
-\[
-z=A+Bx_1+Cx_2+Dx_3
-\]
+The broader feature-engineering work aims toward the **134-predictor dataset** described in the reference research. That feature set is **not yet complete**, and these results should not be presented as the final 134-feature model.
 
-\[
-P(Y=1\mid x)=\frac{1}{1+e^{-z}}
-\]
+## 3. Preprocessing and validation design
 
-A model trained on the separate stratified 80/20 split used for SHAP analysis learned the following coefficients, converted back from standardized units:
+We used **stratified five-fold cross-validation** to evaluate the predictive models. The five folds preserve approximately the same positive-to-negative class proportion as the overall cohort (about 13% vs. 87%).
 
-\[
-z=-5.889396+0.081101(\mathrm{Age})+0.026090(\mathrm{TroponinT})+0.000182(\mathrm{NTproBNP})
-\]
+- `StratifiedKFold(n_splits=5, shuffle=True, random_state=42)`.
+- Each fold is held out once for validation while the model is fitted on the other four folds.
+- Numeric missing values are replaced using a **median fitted on the training fold only**.
+- Logistic Regression additionally uses `StandardScaler`, fitted on the training fold only.
+- Random Forest does not need feature scaling in this experiment.
+- Both trained classifiers use `class_weight="balanced"` to address the imbalanced outcome.
+- The same fold specification and three input variables are used for both model types.
 
-These numbers describe **that fitted training-split model**, not coefficients averaged across the five cross-validation folds. When an input is missing, the fitted imputer supplies its training median. The coefficients use different measurement units, so raw magnitudes should not be compared directly to determine feature importance.
+Fitting preprocessing inside the training portion of every fold helps prevent information from the validation fold leaking into model training.
 
-Configuration: `LogisticRegression(max_iter=2000, class_weight="balanced", random_state=42)`.
+**Probability caveat:** Because class weighting was used and probability calibration was not performed, reported model probabilities are **uncalibrated scores**, not validated individual clinical risk estimates.
 
-### Random Forest
+## 4. Majority-class baseline
 
-The Random Forest averages information from multiple decision trees. We used `RandomForestClassifier(n_estimators=200, min_samples_leaf=5, class_weight="balanced", random_state=42, n_jobs=-1)`.
+Our simplest baseline predicts **no death within five years** for every participant:
 
-For ROC-AUC, we used continuous model scores (the Random Forest's predicted probabilities), **not just binary predictions**.
+$$
+\widehat{Y}_i = 0 \qquad \text{for every participant } i.
+$$
 
-## Performance metrics
+Because the outcome is imbalanced, this baseline achieves approximately **87.0% accuracy** while detecting none of the recorded five-year deaths. Its positive-class precision, recall, and F1-score are all zero, and its ROC-AUC is **0.500**.
 
-Let TP = true positives, FP = false positives, FN = false negatives, and TN = true negatives, where death within five years is the positive class.
+The baseline demonstrates why accuracy alone is inadequate for this dataset.
 
-**Precision:** of those predicted to die, the fraction observed to die.
+## 5. Logistic Regression (GLM)
 
-\[
-\mathrm{Precision}=\frac{TP}{TP+FP}
-\]
+Logistic Regression constructs a **linear score** from the predictors and transforms that score into a number between zero and one using the **sigmoid function**.
 
-**Recall:** of those observed to die, the fraction predicted to die.
+### General formulation
 
-\[
-\mathrm{Recall}=\frac{TP}{TP+FN}
-\]
+$$
+z = A + Bx_1 + Cx_2 + Dx_3
+$$
 
-**F1-score:** the harmonic mean of precision and recall.
+$$
+P(Y = 1 \mid \mathbf{x}) = \sigma(z) = \frac{1}{1 + e^{-z}}
+$$
 
-\[
-F_1=2\frac{\mathrm{Precision}\cdot\mathrm{Recall}}{\mathrm{Precision}+\mathrm{Recall}}
-\]
+Here, $A$ is the intercept and $B$, $C$, and $D$ are learned feature coefficients.
 
-**Accuracy:** `(TP + TN) / (TP + TN + FP + FN)`.
+### Coefficients from our fitted model
 
-**ROC-AUC:** summarizes ranking performance across classification thresholds; 0.5 indicates chance-level separation and 1.0 perfect separation on evaluated data.
+We also trained both models on a separate **stratified 80/20 train/test split** for the explanation study. The Logistic Regression model from that training split learned the following coefficients, converted back from standardized features to their original measurement units:
 
-### Five-fold cross-validation results
+| Parameter | Predictor | Coefficient |
+|---|---|---:|
+| $A$ | Intercept | -5.889396 |
+| $B$ | Age (`RIDAGEYR`) | 0.081101 |
+| $C$ | Troponin-T (`SSTNT`) | 0.026090 |
+| $D$ | NT-proBNP (`SSBNP`) | 0.000182 |
+
+The resulting score equation is:
+
+$$
+\begin{aligned}
+z ={}& -5.889396 \\
+&+ 0.081101\,(\mathrm{Age}) \\
+&+ 0.026090\,(\mathrm{Troponin\ T}) \\
+&+ 0.000182\,(\mathrm{NTproBNP})
+\end{aligned}
+$$
+
+The predicted model output is obtained by substituting this score into the sigmoid equation above.
+
+These coefficients belong to the **single fitted model used for SHAP**, not an average of the models fitted in cross-validation. Missing measurements are replaced by medians learned from its training data. Since the predictors have different units, the raw coefficients cannot be compared directly as measures of feature importance.
+
+Model settings:
+
+```python
+LogisticRegression(
+    max_iter=2000,
+    class_weight="balanced",
+    random_state=42
+)
+```
+
+## 6. Random Forest
+
+Random Forest combines many decision trees. Each tree learns patterns from the training data, and the forest aggregates the trees' outputs to generate a classification or probability score.
+
+Model settings:
+
+```python
+RandomForestClassifier(
+    n_estimators=200,
+    min_samples_leaf=5,
+    class_weight="balanced",
+    random_state=42,
+    n_jobs=-1
+)
+```
+
+We used the same three predictors and stratified five-fold cross-validation as Logistic Regression. For ROC-AUC, the evaluation uses **continuous predicted scores/probabilities**, not the final zero-or-one class labels. In scikit-learn, Random Forest supplies these through `predict_proba()`.
+
+## 7. Model evaluation metrics
+
+For these binary outcomes, a **positive** means a recorded death within five years.
+
+- **TP:** a death correctly predicted as a death.
+- **FP:** a non-death incorrectly predicted as a death.
+- **FN:** a death incorrectly predicted as a non-death.
+- **TN:** a non-death correctly predicted as a non-death.
+
+### Accuracy
+
+The fraction of predictions that are correct:
+
+$$
+\mathrm{Accuracy} = \frac{TP + TN}{TP + TN + FP + FN}
+$$
+
+### Precision
+
+Of the participants predicted to die, the fraction recorded as having died:
+
+$$
+\mathrm{Precision} = \frac{TP}{TP + FP}
+$$
+
+### Recall (sensitivity)
+
+Of the participants recorded as having died, the fraction correctly identified:
+
+$$
+\mathrm{Recall} = \frac{TP}{TP + FN}
+$$
+
+### F1-score
+
+The harmonic mean of precision and recall:
+
+$$
+F_1 = 2 \times \frac{\mathrm{Precision} \times \mathrm{Recall}}{\mathrm{Precision} + \mathrm{Recall}}
+$$
+
+In our baseline calculation, undefined positive-class metrics resulting from no positive predictions are reported as zero using `zero_division=0`.
+
+### ROC-AUC
+
+The receiver operating characteristic (ROC) curve plots **true positive rate** against **false positive rate** as the classification threshold changes:
+
+$$
+\mathrm{TPR} = \frac{TP}{TP + FN}
+$$
+
+$$
+\mathrm{FPR} = \frac{FP}{FP + TN}
+$$
+
+**ROC-AUC** summarizes the model's ability to rank recorded deaths above non-deaths across thresholds. A value of **0.500** indicates chance-level ranking, while **1.000** indicates perfect separation on the evaluated observations. It is **not** a measure of probability calibration.
+
+### Five-fold validation results
 
 | Model | Precision | Recall | F1-score | ROC-AUC |
 |---|---:|---:|---:|---:|
@@ -98,59 +213,153 @@ F_1=2\frac{\mathrm{Precision}\cdot\mathrm{Recall}}{\mathrm{Precision}+\mathrm{Re
 | Logistic Regression | 0.296 | 0.771 | 0.427 | 0.816 |
 | Random Forest | 0.351 | 0.707 | 0.469 | 0.833 |
 
-The learned-model values are means across the five validation folds.
+Values for Logistic Regression and Random Forest are **means across the five validation folds**. Random Forest had the higher precision, F1-score, and ROC-AUC; Logistic Regression had higher recall. These are preliminary results for the three-feature **all-cause mortality** experiment.
 
-## Comparing predictions for the same people
+## 8. Comparing predictions for the same participants
 
-Using out-of-fold predictions from the same five cross-validation folds, the models gave opposite binary classifications for **1,633 of 9,957 participants (16.4%)**, at a threshold of 0.5. The mean absolute difference between their uncalibrated probability outputs was **0.148** (14.8 percentage points). This is a descriptive comparison of model scores, not a comparison of validated clinical risk probabilities.
+We generated **out-of-fold predicted probability scores** with both models using the same five stratified folds. For each participant, that participant's prediction was produced by a model that did **not** train on them.
 
-## Explainability: SHAP
+The absolute model-score difference for participant $i$ is:
 
-SHAP attributes a model's prediction to its input features relative to a specified reference/background distribution. A positive SHAP value raises the model prediction relative to that reference; a negative value lowers it. **These are model explanations, not evidence that the features cause mortality.**
+$$
+\Delta_i = \left|\widehat{p}_{\mathrm{GLM},i} - \widehat{p}_{\mathrm{RF},i}\right|
+$$
 
-For the explanation study, both models were fit on the same stratified training split (**7,965 participants**) and evaluated on the same held-out split (**1,992 participants**). We used the same 40-person background sample and a **permutation SHAP explainer** for each model's probability output.
+The observed mean absolute difference was **0.148**, or 14.8 percentage points. At the illustrative decision threshold of **0.5**, the models gave different binary classifications for **1,633 of 9,957 participants (16.4%)**.
 
-For participant `i` and model `m`, the top-ranked feature is the one with the greatest absolute SHAP value:
+| Logistic Regression | Random Forest | Participants |
+|---|---|---:|
+| Predicts no death | Predicts no death | 6,149 |
+| Predicts no death | Predicts death | 434 |
+| Predicts death | Predicts no death | 1,199 |
+| Predicts death | Predicts death | 2,175 |
 
-\[
-\mathrm{TopFeature}^{(m)}_i=\arg\max_j|\phi^{(m)}_{ij}|
-\]
+This comparison concerns **uncalibrated model scores** and an illustrative threshold. Disagreement about predictions does not automatically imply disagreement about the explanations for those predictions.
 
-We measured three forms of agreement:
+## 9. SHAP: explaining individual predictions
 
-1. **Top-feature agreement:** the fraction of people for whom both models selected the same feature with the largest absolute SHAP value.
-2. **Full-ranking agreement:** the fraction for whom the complete ordering of all three features by absolute SHAP values matched.
-3. **Spearman rank correlation:** the correlation between the two models' feature-importance rankings within each person, then averaged across people. With only three features, this statistic takes relatively coarse values.
+SHAP (SHapley Additive exPlanations) assigns each input feature a contribution relative to a background or reference prediction.
 
-### Preliminary SHAP findings
+For the probability-output explanations used here, the additive decomposition is represented as:
 
-| Held-out sample | Top-feature agreement | Complete-ranking agreement | Mean Spearman |
+$$
+f(\mathbf{x}_i) \approx E[f(\mathbf{X})] + \sum_{j=1}^{3} \phi_{ij}
+$$
+
+where $\phi_{ij}$ is the SHAP contribution of feature $j$ for participant $i$. Positive SHAP values raise the model output relative to its reference value, and negative values lower it. **SHAP describes model behavior; it does not demonstrate medical causation.**
+
+### Explanation experiment setup
+
+For this experiment, we fitted separate copies of both models on the same stratified training set and explained predictions for the same held-out participants:
+
+| Group | Participants |
+|---|---:|
+| Training | 7,965 |
+| Held-out test | 1,992 |
+
+Both models' explanations used:
+
+- The same set of three input features.
+- The same **40-participant background sample** from the training set.
+- `shap.Explainer(..., algorithm="permutation", seed=42)`.
+- Each fitted model's **class-1 probability output** as the explained function.
+- Absolute SHAP contribution magnitudes to rank features within a participant.
+
+Using the same explainer approach and reference sample makes the two models more comparable, although results can still depend on the background choice and permutation approximation.
+
+### Measuring explanation agreement
+
+**Top-feature agreement** measures whether both models choose the same highest-magnitude SHAP feature for a participant:
+
+$$
+j_i^{(m)} = \underset{j}{\operatorname{arg\,max}}\;\left|\phi_{ij}^{(m)}\right|
+$$
+
+$$
+\mathrm{TopAgreement} = \frac{1}{N}\sum_{i=1}^{N}\mathbb{1}\left[j_i^{(\mathrm{GLM})}=j_i^{(\mathrm{RF})}\right]
+$$
+
+**Complete ranking agreement** measures whether the full ordering of the three features by absolute SHAP value is identical in both models:
+
+$$
+\mathrm{FullAgreement} = \frac{1}{N}\sum_{i=1}^{N}\mathbb{1}\left[R_i^{(\mathrm{GLM})}=R_i^{(\mathrm{RF})}\right]
+$$
+
+Here, $R_i^{(m)}$ is model $m$'s ordered list of the three feature indices for participant $i$.
+
+**Spearman rank correlation** measures how similarly the two models order the features for an individual participant. For $K$ features with no tied ranks, it can be written as:
+
+$$
+\rho = 1 - \frac{6\sum_{j=1}^{K}d_j^2}{K(K^2-1)}
+$$
+
+where $d_j$ is the difference between the two models' ranks for feature $j$. The analysis used `scipy.stats.spearmanr` on the absolute SHAP values and averaged the per-participant correlations. With only **three features**, possible correlation values are relatively coarse; ties and near-ties also deserve further study.
+
+### Preliminary SHAP agreement results
+
+| Held-out sample | Top-feature agreement | Complete ranking agreement | Mean Spearman correlation |
 |---|---:|---:|---:|
+| 20 sampled participants | 45.0% | Not evaluated | Not evaluated |
 | 100 sampled participants | 49.0% | 23.0% | 0.265 |
-| 300 participants with both biomarkers observed | 45.3% | 28.7% | 0.338 |
+| 300 participants with both biomarkers recorded | 45.3% | 28.7% | 0.338 |
 
-The two exploratory samples may overlap; they are **not independent replications**. Within the 300-person complete-biomarker sample, different model architectures frequently identified different highest-impact features despite similar overall cross-validated ROC-AUC.
+For the **300-person complete-biomarker sample**, the two models selected different top features for **54.7%** of the participants.
 
-### Missing biomarker sensitivity analysis
+These samples may overlap and are not independent replications. They also use models trained on **one 80/20 split** for SHAP analysis. The ranking differences therefore represent **preliminary exploratory evidence**, not yet a population-wide or split-stable estimate.
 
-In the 100-person sample:
+### Example: one held-out participant
 
-| Biomarker measurements | Participants | Top-feature agreement | Complete-ranking agreement |
+For participant index `1721`, the feature values were age **60**, Troponin-T **5.39**, and NT-proBNP **11.44**.
+
+| Predictor | GLM SHAP | Random Forest SHAP |
+|---|---:|---:|
+| Age | **-0.0934** | -0.0775 |
+| Troponin-T | -0.0300 | **-0.1136** |
+| NT-proBNP | -0.0065 | -0.0306 |
+
+The GLM's largest absolute SHAP contribution came from **age**, while Random Forest's came from **Troponin-T**. Both SHAP values were negative relative to their respective reference outputs. Their uncalibrated predicted scores were **0.293** and **0.121**, respectively.
+
+This illustrates disagreement in an **individual explanation**; it does not establish that either model is medically correct.
+
+## 10. Missing-biomarker sensitivity analysis
+
+Some NHANES participants have missing cardiac biomarker measurements. Our training pipelines replace missing numeric values with medians learned from the corresponding training data.
+
+In a 100-person SHAP sample, we observed:
+
+| Biomarker availability | Participants | Top-feature agreement | Complete-ranking agreement |
 |---|---:|---:|---:|
-| Both available | 84 | 42.9% | 27.4% |
+| Both measured | 84 | 42.9% | 27.4% |
 | At least one missing | 16 | 81.2% | 0.0% |
 
-The smaller subgroup should not be overinterpreted. Median imputation can affect both predictions and explanations. The subsequent 300-person analysis restricted **the explanation sample** to participants with both biomarkers observed; the models themselves were still fitted with imputation.
+Both biomarkers were missing for the same 16 participants in that sample. These subgroup sizes are small, and no causal conclusion can be drawn from the differences.
 
-## Limitations and next steps
+The later 300-person SHAP study restricted the **evaluation sample** to participants with both biomarkers measured. It **did not retrain the models on complete cases**; training still used the original imputation pipelines.
 
-- **Outcome mismatch:** these experiments predict **all-cause**, not cardiovascular-specific, mortality. The current cohort checkpoint does not contain `UCOD_LEADING`, so we cannot yet label cause-specific deaths.
-- **Follow-up and censoring:** audit the five-year mortality label and consider survival/competing-risk methods where required by the endpoint.
-- **Small feature set:** only three predictors are used here; the 134-feature replication pipeline remains unfinished.
-- **Explanation robustness:** examine different model training splits, different SHAP background sets, near-ties in rankings, and more held-out participants.
-- **Clinical calibration:** class-balanced, uncalibrated probability outputs are not personalized clinical risk estimates.
-- **Reproducibility:** document how to obtain and prepare the underlying NHANES files; raw data and intermediate local checkpoints are not stored in GitHub.
+## 11. Limitations
 
-## Code and reproducibility status
+1. **Outcome definition:** The current target is 5-year *all-cause* mortality, not cardiovascular-specific mortality. The current checkpoint does not contain `UCOD_LEADING` (underlying cause of death).
+2. **Censoring:** The preliminary binary label needs review to ensure participants counted as non-events had adequate follow-up. Cause-specific analysis may also require competing-risk methods.
+3. **Limited predictors:** Only age, Troponin-T, and NT-proBNP were included in these models; the planned 134-variable feature dataset is unfinished.
+4. **Single explanation training split:** SHAP agreement has not yet been tested across repeated model training splits, additional backgrounds, or multiple explanation seeds.
+5. **Imputation and missingness:** Medians for missing laboratory measurements may affect predictions and feature attributions.
+6. **Calibration:** Class-balanced predicted probabilities were not calibrated or clinically validated.
+7. **Sampling and generalizability:** These are preliminary NHANES experiments. Model agreement findings should not yet be generalized beyond the evaluated data.
+8. **No causal interpretation:** High model importance does not prove that a feature causes higher or lower mortality.
 
-The notebook for these experiments is `notebooks/03_onehot_baseline_cv.ipynb`. A cardiovascular-outcome investigation is in progress. All stated values are from preliminary notebook executions and must be independently checked before publication or clinical interpretation.
+## 12. Next research steps
+
+- Obtain and verify the linked cause-of-death data, including `UCOD_LEADING`, with attention to NHANES linkage and public-use coding rules.
+- Audit follow-up time and define a defensible cardiovascular mortality endpoint, accounting for censoring and competing causes of death.
+- Continue the exact predictor mapping and derivations needed for the planned 134-feature analysis.
+- Repeat model training and explanation comparisons across different stratified splits and SHAP background samples.
+- Expand explanation agreement analysis with complete rankings, robustness to near-ties, and missing-data sensitivity checks.
+- Evaluate calibration and uncertainty before treating predicted scores as individual risks.
+
+## 13. Implementation and reproducibility
+
+The primary experiment notebook is [`notebooks/03_onehot_baseline_cv.ipynb`](../notebooks/03_onehot_baseline_cv.ipynb). Cohort and feature-building work appears in [`01_cohort_replication.ipynb`](../notebooks/01_cohort_replication.ipynb) and [`02_build_features.ipynb`](../notebooks/02_build_features.ipynb).
+
+The analysis uses **Python, pandas, NumPy, scikit-learn, SciPy, SHAP, and Jupyter**. The notebook loads a locally generated checkpoint at `results/cohort_features_checkpoint.pkl`. Raw NHANES files and local checkpoints are excluded from GitHub, so reproducing the results requires reconstructing the data first. A full data-download and preparation guide remains to be documented.
+
+This document records **results observed in the working notebooks**, which should be independently reproduced and validated before publication.
