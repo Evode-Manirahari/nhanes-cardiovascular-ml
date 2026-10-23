@@ -272,7 +272,7 @@ Using the same explainer approach and reference sample makes the two models more
 **Top-feature agreement** measures whether both models choose the same highest-magnitude SHAP feature for a participant:
 
 ```math
-j_i^{(m)} = \underset{j}{\operatorname{arg\,max}}\;\left|\phi_{ij}^{(m)}\right|
+j_i^{(m)} = \underset{j}{\mathrm{argmax}}\;\left|\phi_{ij}^{(m)}\right|
 ```
 
 ```math
