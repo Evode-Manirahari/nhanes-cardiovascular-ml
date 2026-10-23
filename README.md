@@ -1,76 +1,89 @@
-# NHANES Cardiovascular ML Research
+## Research Overview
 
-Replication and extension of Lin et al. (2026) using NHANES 1999–2004 data for 5-year all-cause mortality prediction.
+This project investigates machine learning for mortality risk prediction using data from the National Health and Nutrition Examination Survey (NHANES).
 
-## Cohort
+Our current work builds on Lin et al. (2026), *Toward practical screening of mortality risk: Insights from interpretable machine learning in NHANES*.
 
-Starting NHANES sample:
+We are also exploring a research question:
 
-- 31,126 participants
-- age 40+ → 9,977
-- remove missing mortality follow-up
-- final cohort → **9,957 participants**
+**If several machine-learning models predict mortality similarly well, do they agree on which factors are most important for the same person?**
 
-## Current Progress
+### Dataset
 
-### Feature construction
+We are working with NHANES 1999–2004 data.
 
-Built and merged major predictor blocks including:
+- Initial participants: 31,126
+- Final study cohort: 9,957 adults aged 40+
+- Five-year mortality outcomes: 1,293 deaths and 8,664 non-deaths
+- Current prediction target: 5-year all-cause mortality
 
-- demographics
-- body measurements
-- cardiovascular fitness
-- physical activity
-- A1c
-- chemistry panels
-- CBC
-- fasting glucose, insulin, and C-peptide
-- CRP
-- cholesterol
-- NT-proBNP
-- Troponin-T
-- trace elements and micronutrients
+The feature-engineering pipeline is still being developed toward the full 134-variable research dataset.
 
-Work is continuing toward the verified **134-variable paper feature set**.
+### Machine Learning Models
 
-### Preprocessing / baseline
+We implemented two preliminary models using three predictors:
 
-Completed:
+- Age (`RIDAGEYR`)
+- High-sensitivity Troponin-T (`SSTNT`)
+- NT-proBNP (`SSBNP`)
 
-- categorical one-hot encoding
-- cleanup of NHANES nonresponse codes
-- majority-class mortality baseline
-- stratified 5-fold cross-validation
-- fold-specific preprocessing to avoid leakage
+Both models were evaluated using stratified 5-fold cross-validation with preprocessing fitted separately within each training fold.
 
-### Baseline result
+### Preliminary Model Performance
 
-5-year mortality:
+| Model | Precision | Recall | F1-score | ROC-AUC |
+|---|---:|---:|---:|---:|
+| Majority-class baseline | 0.000 | 0.000 | 0.000 | 0.500 |
+| Logistic Regression | 0.296 | 0.771 | 0.427 | 0.816 |
+| Random Forest | 0.351 | 0.707 | 0.469 | 0.833 |
 
-- survived / no death within 5 years: **8,664**
-- died within 5 years: **1,293**
+Random Forest achieved higher precision, F1-score, and ROC-AUC, while Logistic Regression achieved higher recall.
 
-A model that predicts survival for every participant achieves:
+### Explainable AI and Model Agreement
 
-**87.01% accuracy**
+We are using SHAP to investigate whether different models identify the same important features for individual participants.
 
-5-fold cross-validation:
+In a preliminary experiment involving 300 held-out participants with complete cardiac biomarker measurements:
 
-**Mean accuracy: 87.01%**
+- Top-feature agreement: 45.3%
+- Complete feature-ranking agreement: 28.7%
+- Average Spearman rank correlation: 0.338
 
-This demonstrates why accuracy alone is not sufficient for evaluating an imbalanced mortality prediction problem.
+These preliminary results suggest that similar predictive performance does not necessarily lead to similar feature explanations.
 
-## Notebooks
+The analysis uses three features, one training/test split for SHAP, and uncalibrated model outputs. Additional validation is required.
 
-- `01_cohort_replication.ipynb` — reproduce the study cohort
-- `02_build_features.ipynb` — construct and merge predictors
-- `03_onehot_baseline_cv.ipynb` — one-hot encoding, baseline, 5-fold CV, and fold-safe preprocessing
+### Current Research Progress
 
-## Stack
+**Completed:**
+- NHANES cohort construction
+- Initial feature engineering
+- One-hot encoding and missing-value preprocessing
+- Majority-class baseline evaluation
+- Stratified 5-fold cross-validation
+- Logistic Regression and Random Forest evaluation
+- Individual SHAP explanations
+- Preliminary feature-ranking agreement analysis
 
-- Python
-- pandas
-- NumPy
-- scikit-learn
-- matplotlib
-- Jupyter
+**In progress:**
+- Completing the full 134-feature dataset
+- Obtaining and validating cause-specific mortality data
+- Constructing a cardiovascular-specific mortality outcome
+- Testing explanation stability across different training splits
+- Expanding model and feature-importance comparisons
+
+### Important Limitations
+
+The current results predict **5-year all-cause mortality**, not cardiovascular-specific mortality.
+
+The current dataset does not contain `UCOD_LEADING`, which is needed for our planned cause-specific mortality analysis.
+
+These models are research prototypes and are not intended for clinical decision-making.
+
+### Research Environment
+
+Python, pandas, NumPy, scikit-learn, SHAP, Jupyter Notebook, and Git.
+
+The notebook containing the preliminary model experiments is `notebooks/03_onehot_baseline_cv.ipynb`.
+
+Raw NHANES data and locally generated checkpoints are excluded from GitHub.
