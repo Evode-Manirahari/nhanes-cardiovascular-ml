@@ -60,7 +60,7 @@ We used **stratified five-fold cross-validation** to evaluate the predictive mod
 - Logistic Regression additionally uses `StandardScaler`, fitted on the training fold only.
 - Random Forest does not need feature scaling in this experiment.
 - Both trained classifiers use `class_weight="balanced"` to address the imbalanced outcome.
-- The same fold specification and three input variables are used for both model types.
+- The same fold specification was used for both model types in each experiment; the initial experiment used three inputs and the expanded experiment used 142 selected inputs.
 
 Fitting preprocessing inside the training portion of every fold helps prevent information from the validation fold leaking into model training.
 
@@ -205,7 +205,7 @@ The receiver operating characteristic (ROC) curve plots **true positive rate** a
 
 **ROC-AUC** summarizes the model's ability to rank recorded deaths above non-deaths across thresholds. A value of **0.500** indicates chance-level ranking, while **1.000** indicates perfect separation on the evaluated observations. It is **not** a measure of probability calibration.
 
-### Five-fold validation results
+### Five-fold validation results (initial three-feature experiment)
 
 | Model | Precision | Recall | F1-score | ROC-AUC |
 |---|---:|---:|---:|---:|
@@ -340,8 +340,8 @@ The later 300-person SHAP study restricted the **evaluation sample** to particip
 
 1. **Outcome definition:** The current target is 5-year *all-cause* mortality, not cardiovascular-specific mortality. The current checkpoint does not contain `UCOD_LEADING` (underlying cause of death).
 2. **Censoring:** The preliminary binary label needs review to ensure participants counted as non-events had adequate follow-up. Cause-specific analysis may also require competing-risk methods.
-3. **Limited predictors:** Only age, Troponin-T, and NT-proBNP were included in these models; the planned 134-variable feature dataset is unfinished.
-4. **Single explanation training split:** SHAP agreement has not yet been tested across repeated model training splits, additional backgrounds, or multiple explanation seeds.
+3. **Candidate predictors:** The initial experiment used three features and the later exploratory experiment used 142 selected predictors. The paper's exact 134-predictor dataset is unfinished, and the 142 columns still need a complete variable-code and missing-value audit.
+4. **Single explanation training split:** SHAP agreement has been tested with multiple backgrounds for fixed trained models, but not yet across repeated model training splits or multiple approximation seeds.
 5. **Imputation and missingness:** Medians for missing laboratory measurements may affect predictions and feature attributions.
 6. **Calibration:** Class-balanced predicted probabilities were not calibrated or clinically validated.
 7. **Sampling and generalizability:** These are preliminary NHANES experiments. Model agreement findings should not yet be generalized beyond the evaluated data.
@@ -352,7 +352,7 @@ The later 300-person SHAP study restricted the **evaluation sample** to particip
 - Obtain and verify the linked cause-of-death data, including `UCOD_LEADING`, with attention to NHANES linkage and public-use coding rules.
 - Audit follow-up time and define a defensible cardiovascular mortality endpoint, accounting for censoring and competing causes of death.
 - Continue the exact predictor mapping and derivations needed for the planned 134-feature analysis.
-- Repeat model training and explanation comparisons across different stratified splits and SHAP background samples.
+- Repeat model training and explanation comparisons across different stratified splits, SHAP backgrounds, and larger held-out participant samples.
 - Expand explanation agreement analysis with complete rankings, robustness to near-ties, and missing-data sensitivity checks.
 - Evaluate calibration and uncertainty before treating predicted scores as individual risks.
 
@@ -363,3 +363,78 @@ The primary experiment notebook is [`notebooks/03_onehot_baseline_cv.ipynb`](../
 The analysis uses **Python, pandas, NumPy, scikit-learn, SciPy, SHAP, and Jupyter**. The notebook loads a locally generated checkpoint at `results/cohort_features_checkpoint.pkl`. Raw NHANES files and local checkpoints are excluded from GitHub, so reproducing the results requires reconstructing the data first. A full data-download and preparation guide remains to be documented.
 
 This document records **results observed in the working notebooks**, which should be independently reproduced and validated before publication.
+
+## 14. Expanded 142-predictor experiments (October 2026)
+
+This section extends the three-predictor experiments documented in Sections 3-10; it does not replace their results. The target remains preliminary **five-year all-cause mortality**.
+
+### 14.1 Candidate predictors and preprocessing
+
+The expanded experiment used **9,957** NHANES participants and **142 selected candidate predictors**: **116 numeric** and **26 categorical**. Starting from 261 candidate predictor columns, the notebook removed 108 survey-weight columns and 11 other columns (survey-design/administration information, mortality-linkage information, and two entirely missing variables). This is **not** yet the paper's verified 134-predictor dataset; variable definitions and nonresponse codes still need a complete audit.
+
+The selected predictors were transformed into **232 model-input columns** after one-hot encoding. Both models used the same set of original predictors. They used training-fold median imputation for numeric variables and training-fold most-frequent imputation followed by `OneHotEncoder(handle_unknown="ignore")` for categorical variables. Logistic Regression additionally used `StandardScaler` on numeric inputs. All preprocessing was fitted separately inside each cross-validation training fold to avoid validation leakage. Some variable-specific special response codes were replaced by missing values during feature preparation; this cleaning is preliminary.
+
+Both models used `class_weight="balanced"` and the same `StratifiedKFold(n_splits=5, shuffle=True, random_state=42)`. Logistic Regression used `max_iter=3000`. Random Forest used 200 trees and `min_samples_leaf=5` (`random_state=42`, `n_jobs=-1`). The current numeric missing-value method (median) is simpler than the iterative multivariable imputation described in the reference paper.
+
+### 14.2 Five-fold evaluation
+
+| Model | Predictors | Precision | Recall | F1-score | ROC-AUC |
+|---|---:|---:|---:|---:|---:|
+| Logistic Regression | 3 | 0.296 | 0.771 | 0.427 | 0.816 |
+| Random Forest | 3 | 0.351 | 0.707 | 0.469 | 0.833 |
+| Logistic Regression | 142 | 0.359 | 0.770 | 0.490 | 0.857 |
+| Random Forest | 142 | 0.450 | 0.668 | 0.538 | 0.868 |
+
+Values are means of five validation folds, not scores on the training set. The expanded models had higher ROC-AUC and F1-score than their three-predictor counterparts in this experiment. Random Forest's higher precision and Logistic Regression's higher recall represent a tradeoff at the models' current decision threshold.
+
+### 14.3 Predictions on the same held-out participants
+
+For exploratory individual comparisons, fitted copies of both expanded pipelines used the **same stratified 80/20 split** (7,965 training and 1,992 held-out participants; `random_state=42`). This is a different evaluation design from the five-fold means above.
+
+| Measure | Value |
+|---|---:|
+| Held-out Logistic Regression ROC-AUC | 0.842 |
+| Held-out Random Forest ROC-AUC | 0.865 |
+| Different binary classifications at 0.5 threshold | 233 / 1,992 (11.7%) |
+| Mean absolute difference in predicted class-1 scores | 0.105 |
+
+Because both models used class balancing but no probability calibration, the class-1 scores are **not validated absolute five-year risks**. A difference in score or classification is not, by itself, a difference in feature explanation.
+
+### 14.4 Permutation SHAP on 142 original predictors
+
+To compare interpretable variables rather than each one-hot indicator separately, permutation SHAP explained each fitted **full preprocessing-and-model pipeline as a function of the original 142 columns**. The background and explained data were converted to numeric arrays of NHANES category codes for compatibility with the SHAP masker; model predictions were checked to remain unchanged after this conversion. Each model's class-1 `predict_proba` output was explained, and predictors were ranked by absolute SHAP contributions.
+
+The initial experiment used the **same 30 held-out participants**, the **same 8 training participants as background**, and permutation SHAP with `max_evals = 2 * 142 + 1` for both fitted models.
+
+| Explanation comparison | Result |
+|---|---:|
+| Same most influential feature | 2/30 (6.7%) |
+| Same complete ranking of 142 predictors | 0/30 (0.0%) |
+| Average Spearman correlation of absolute SHAP values | 0.550 |
+| Mean share of overlapping top-five features | 8.0% |
+| Mean share of overlapping top-ten features | 10.7% |
+| Participants sharing at least one top-five feature | 12/30 |
+
+Top-five overlap for one participant means `number of shared features in the two top-five lists / 5`. Complete ranking equality is a very strict measure for 142 features; a zero result should not be interpreted as no similarity anywhere in the rankings. A correlation calculated from all features may also be influenced by many low-importance features.
+
+### 14.5 Background sensitivity
+
+The reference/background sample used by permutation SHAP can affect explanations. As a controlled follow-up, two different background samples of **40 training participants each** were used to explain the **same 30 held-out participants**, with the same fitted models and SHAP settings.
+
+| Comparison | Result |
+|---|---:|
+| Logistic Regression: same top feature under background A and B | 15/30 (50.0%) |
+| Random Forest: same top feature under background A and B | 22/30 (73.3%) |
+| GLM vs. Random Forest top-feature agreement, background A | 2/30 (6.7%) |
+| GLM vs. Random Forest top-feature agreement, background B | 3/30 (10.0%) |
+
+These numbers measure **background sensitivity**, not stability across retraining. The result suggests that explanation choices can change even if the model and participant are fixed. It does not demonstrate that Random Forest is inherently more explainable or reliable. Additional sensitivity checks should vary training splits, SHAP approximation seeds, and the number and selection of held-out participants.
+
+### 14.6 Interpretation and outstanding validation
+
+In this preliminary experiment, Logistic Regression and Random Forest achieved relatively similar five-fold ROC-AUC values (**0.857** and **0.868**) but frequently differed in their top-ranked SHAP predictor for the same participant. The low top-feature agreement needs to be interpreted alongside the models' own SHAP background sensitivity. The experiment does **not** establish medical causation, prove one model's explanation is correct, or provide a clinically validated risk estimate.
+
+Before making stronger claims, we need to: (1) review each of the 142 predictor definitions and code-specific missing values; (2) complete the paper's verified 134-feature mapping; (3) audit five-year follow-up and censoring; (4) validate the cardiovascular mortality outcome using the downloaded CDC mortality files; and (5) repeat model/explanation comparisons on additional held-out samples and training splits, including top-k stability and uncertainty estimates.
+
+All expanded-model code and outputs are in [`notebooks/03_onehot_baseline_cv.ipynb`](../notebooks/03_onehot_baseline_cv.ipynb).
+
