@@ -56,8 +56,10 @@ from matplotlib.ticker import NullFormatter  # noqa: E402
 ROOT = M.ROOT
 OUT = ROOT / "results" / "models_v0.2"
 MAIN = ["Logistic Regression", "Random Forest", "XGBoost", "LightGBM"]
+# Paper 2.3: only XGBoost receives missing values as NaN; "the remaining algorithms"
+# (GLM, Random Forest, LightGBM) receive the imputed table.
 KIND = {"Logistic Regression": "imp", "Random Forest": "imp", "XGBoost": "nat",
-        "LightGBM": "nat", "XGBoost (seed 2)": "nat", "Random Forest (seed 2)": "imp",
+        "LightGBM": "imp", "XGBoost (seed 2)": "nat", "Random Forest (seed 2)": "imp",
         "XGBoost (imputed inputs)": "imp"}
 BLUE, ORANGE, AQUA, YELLOW = "#2a78d6", "#eb6834", "#1baf7a", "#eda100"
 DIVERGING = LinearSegmentedColormap.from_list("div", [BLUE, "#f0efec", ORANGE])
@@ -231,7 +233,7 @@ def agreement_rows(S, clusters):
 
 
 def subgroup_masks(X):
-    cvd = (X[["MCQ160B", "MCQ160C", "MCQ160F"]] == 1).any(axis=1)
+    cvd = (X[["MCQ160B", "MCQ160E", "MCQ160F"]] == 1).any(axis=1)
     return {"All": pd.Series(True, index=X.index), "Men": X["RIAGENDR"] == 1,
             "Women": X["RIAGENDR"] == 2, "Age under 65": X["RIDAGEYR"] < 65,
             "Age 65+": X["RIDAGEYR"] >= 65, "Prior CVD": cvd, "No prior CVD": ~cvd}
@@ -269,7 +271,7 @@ def cv_everything(X, y, feats, fast):
         fitted = {"Logistic Regression": LR().fit(mats["imp"][0], ytr),
                   "Random Forest": fit_rf(mats["imp"][0], ytr),
                   "XGBoost": fit_xgb(mats["nat"][0], ytr),
-                  "LightGBM": fit_lgb(mats["nat"][0], ytr),
+                  "LightGBM": fit_lgb(mats["imp"][0], ytr),
                   "XGBoost (seed 2)": fit_xgb(mats["nat"][0], ytr, seed=7),
                   "Random Forest (seed 2)": fit_rf(mats["imp"][0], ytr, seed=7),
                   "XGBoost (imputed inputs)": fit_xgb(mats["imp"][0], ytr)}
@@ -422,7 +424,8 @@ def survival(X, y, fold_id, w):
     d = pd.DataFrame({"tnt": X["SSTNT"], "bnp": X["SSBNP"], "y": y, "fold": fold_id,
                       "t": mort["PERMTH_INT"].clip(upper=60),
                       "cause": np.where(cvd, 1, np.where(died5, 2, 0)),
-                      "any_death": mort["MORTSTAT"], "w": w}).dropna()
+                      "any_death": mort["MORTSTAT"], "t_full": mort["PERMTH_INT"],
+                      "w": w}).dropna()
     cuts, order = [], ["Both low", "NT-proBNP high only", "TNT high only", "Both high"]
     d["group"] = ""
     for f in range(5):
@@ -503,6 +506,48 @@ def survival(X, y, fold_id, w):
     fig.subplots_adjust(wspace=0.16, right=0.95, bottom=0.13)
     fig.savefig(OUT / "fig_cumulative_incidence.png", dpi=160)
     plt.close(fig)
+    # Paper Figure 3 follows people for about 250 months, so repeat the analysis on the
+    # full follow-up: cut-offs by Youden index for death at any time, other four folds.
+    d["group_full"], cuts_full = "", []
+    for f in range(5):
+        trn, tst = d[d.fold != f], d.index[d.fold == f]
+        ct, cb = youden(trn["any_death"], trn["tnt"]), youden(trn["any_death"], trn["bnp"])
+        cuts_full.append({"fold": f + 1, "n_train": len(trn), "n_test": len(tst),
+                          "TNT_cutoff": ct, "NT-proBNP_cutoff": cb})
+        ht, hb = d.loc[tst, "tnt"] >= ct, d.loc[tst, "bnp"] >= cb
+        d.loc[tst, "group_full"] = np.select([~ht & ~hb, ~ht & hb, ht & ~hb], order[:3], order[3])
+    p_full = logrank(d["t_full"], d["any_death"], d["group_full"])
+    full = d.groupby("group_full").agg(n=("y", "size"), deaths=("any_death", "sum")).loc[order]
+    fig, ax = plt.subplots(figsize=(7.2, 4.6))
+    surv_end = []
+    for g, col in zip(order, colors):
+        k = d.group_full == g
+        tt, ss = kaplan_meier(d.loc[k, "t_full"], d.loc[k, "any_death"])
+        ax.step(np.r_[tt[tt <= 240], 240], np.r_[ss[tt <= 240], ss[tt <= 240][-1]],
+                where="post", color=col, label=f"{g} (n={k.sum():,})")
+        surv_end.append(100 * ss[tt <= 240][-1])  # few people are followed beyond 240 months
+    pos, last = {}, -np.inf
+    for i in np.argsort(surv_end):
+        pos[i] = max(surv_end[i], last + 5)
+        last = pos[i]
+    for i, v in enumerate(surv_end):
+        ax.annotate(f"{v:.0f}%", (240, pos[i] / 100), xytext=(6, 0), fontsize=9,
+                    textcoords="offset points", va="center", color=INK2, annotation_clip=False)
+    full["survival at 240 months %"] = surv_end
+    ax.set(xlim=(0, 240), ylim=(0, 1), xlabel="Months since interview",
+           ylabel="Survival probability",
+           title="Survival over the full follow-up, by Troponin-T and NT-proBNP group")
+    ax.legend(loc="lower left")
+    fig.text(0.01, 0.01, f"Cut-offs: Youden index for death at any time, other four folds. "
+             f"Log-rank p {'= %.1e' % p_full if p_full > 0 else '< 1e-300'}. n = {len(d):,}.",
+             color=MUTED, fontsize=8)
+    fig.subplots_adjust(right=0.92, bottom=0.17)
+    fig.savefig(OUT / "fig_km_full_followup.png", dpi=160)
+    plt.close(fig)
+    pd.DataFrame(cuts_full).to_csv(OUT / "km_cutoffs_full_followup.csv", index=False)
+    full.reset_index().to_csv(OUT / "km_groups_full_followup.csv", index=False)
+    tests.loc[len(tests)] = ["All-cause death, full follow-up", "Log-rank", p_full]
+
     return pd.DataFrame(cuts), summ.reset_index(), tests, pd.DataFrame(alt)
 
 
@@ -547,6 +592,9 @@ def definition_sensitivity(X, y, cand, feats):
         "HR recovery = peak minus recovery heart rate":
             swap({f"CVDR{k}HR": f"HRR_{k}MIN_CAND" for k in (1, 2, 3)}),
         "eGFR = CKD-EPI 2009": swap({"eGFR": "eGFR_CKDEPI2009_CAND"}),
+        "Glycated albumin = percent (SSGALBP)": swap({"SSGALB": "SSGALBP"}),
+        "Coronary heart disease (MCQ160C) instead of heart attack":
+            swap({"MCQ160E": "MCQ160C"}),
     }
     rows = []
     for name, cols in variants.items():
@@ -726,6 +774,16 @@ def main():
     w = survey_weights(X.index)
     print(f"Data {X.shape}, deaths {int(y.sum())}, weighted n {w.sum():.3g}", flush=True)
 
+    # ---- which predictors are one-hot encoded -----------------------------------
+    enc = pd.DataFrame([{
+        "Paper variable": names[c], "Column": c, "Categories": X[c].nunique(),
+        "Category codes": ", ".join(f"{v:g}" for v in sorted(X[c].dropna().unique())),
+        "Missing (n)": int(X[c].isna().sum()),
+        "Missing (%)": round(100 * X[c].isna().mean(), 1),
+        "Filled with (most frequent)": f"{X[c].mode()[0]:g}"} for c in feats if c in M.CATEGORICAL])
+    assert len(enc) == len(M.CATEGORICAL)
+    enc.to_csv(OUT / "categorical_encoding.csv", index=False)
+
     # ---- cross-validation: models, importance, SHAP -----------------------------
     oof, fold_id, R = cv_everything(X, y, feats, fast)
     oof["XGBoost (paper's five predictors)"] = cv_xgb(X, y, FIVE)
@@ -867,7 +925,8 @@ def main():
     temp.to_csv(OUT / "temporal_validation.csv", index=False)
 
     json.dump({"fast_mode": fast, "n": len(X), "deaths": int(y.sum()), "seed": SEED,
-               "provisional_definitions": M.PROVISIONAL, "top_five_by_our_shap": ours,
+               "provisional_definitions": M.PROVISIONAL, "categorical_predictors": M.CATEGORICAL,
+               "top_five_by_our_shap": ours,
                "our_top_five_equals_papers_five": same,
                "people_explained": len(people)}, open(OUT / "summary.json", "w"), indent=2)
 

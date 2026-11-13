@@ -59,8 +59,18 @@ N_EXPLAIN = 500
 
 PROVISIONAL = {"DERIVED_HR_INCREMENT": "HR_INCREMENT_CAND_REST",
                "DERIVED_MET": "MET_MIN_30D_CAND"}
-CATEGORICAL = ["RIAGENDR", "RIDRETH1", "INDHHINC", "PAQ180", "BPQ020", "MCQ160B",
-               "MCQ160C", "MCQ160F", "DIQ010", "XY_Estimation"]
+# The 14 predictors that are categories, not measurements: CDC-coded answers plus the
+# three yes/no medication flags (same list as the "One-hot?" column of the variable audit).
+# They are filled with the most frequent category and one-hot encoded (paper 2.3).
+CATEGORICAL = ["RIAGENDR", "RIDRETH1", "INDHHINC", "PAQ180", "CVDFITLV", "BPQ020", "MCQ160B",
+               "MCQ160E", "MCQ160F", "DIQ010", "XY_Estimation",
+               "DERIVED_HL_MED", "DERIVED_HTN_MED", "DERIVED_DM_MED"]
+# The paper's text names "myocardial infarction" (Methods 2.4) and "Heart attack" (Table 1),
+# which is NHANES MCQ160E. The working crosswalk mapped this row to MCQ160C (coronary heart
+# disease), so the model input is replaced here; MCQ160C stays available for sensitivity runs.
+REPLACED = {"MCQ160C": "MCQ160E"}
+REPLACED_NAMES = {"MCQ160E": "Heart attack history"}
+CATEGORICAL_ALTERNATES = ["MCQ160C"]  # encoded as categories when used in sensitivity runs
 FIVE = ["RIDAGEYR", "RIAGENDR", "PAQ180", "SSTNT", "SSBNP"]
 FORBIDDEN = {"SEQN", "death_5yr", "SDDSRVYR", "MORTSTAT", "PERMTH_INT", "ELIGSTAT"}
 
@@ -85,9 +95,13 @@ def load():
     cross = pd.read_csv(CROSS)
     feats = [r["Dataset column"] if isinstance(r["Dataset column"], str)
              else PROVISIONAL[r["Paper code"]] for _, r in cross.iterrows()]
+    feats = [REPLACED.get(f, f) for f in feats]
+    mi = pd.concat([pd.read_sas(ROOT / f"data/raw/{f}.xpt", format="xport")[["SEQN", "MCQ160E"]]
+                    for f in ("MCQ", "MCQ_B", "MCQ_C")]).set_index("SEQN")["MCQ160E"]
+    c["MCQ160E"] = mi.reindex(c.index)
     assert len(feats) == 134 and len(set(feats)) == 134
     assert not FORBIDDEN & set(feats)
-    names = dict(zip(feats, cross["Paper feature"]))
+    names = {**dict(zip(feats, cross["Paper feature"])), **REPLACED_NAMES}
     X = c[feats].astype(float)
     y = c["death_5yr"].astype(int)
     return X, y, c["SDDSRVYR"].astype(int), names
@@ -99,8 +113,9 @@ class Prep:
     iterative multivariable imputation ('imputed', for LR and RF)."""
 
     def __init__(self, cols):
-        self.cat = [c for c in cols if c in CATEGORICAL]
-        self.num = [c for c in cols if c not in CATEGORICAL]
+        cats = set(CATEGORICAL) | set(CATEGORICAL_ALTERNATES)
+        self.cat = [c for c in cols if c in cats]
+        self.num = [c for c in cols if c not in cats]
 
     def fit(self, X, impute=True, full=False):
         self.mode = {c: X[c].mode().iloc[0] for c in self.cat}
