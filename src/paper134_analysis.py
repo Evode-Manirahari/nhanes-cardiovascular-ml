@@ -149,6 +149,7 @@ def survey_weights(index):
     c = pd.read_csv(ROOT / "data/processed/cohort_9957.csv",
                     usecols=["SEQN", "SDDSRVYR", "WTMEC4YR", "WTMEC2YR"])
     w = np.where(c["SDDSRVYR"] < 3, c["WTMEC4YR"] * 2 / 3, c["WTMEC2YR"] / 3)
+    w = np.where(w < 1e-70, 0.0, w)  # SAS zero read by pandas as ~5e-79
     return pd.Series(w, index=c["SEQN"].astype(float)).reindex(index).fillna(0.0)
 
 
@@ -590,8 +591,8 @@ def definition_sensitivity(X, y, cand, feats):
         "MET = summed MET values": swap({"MET_MIN_30D_CAND": "MET_SUM_CAND"}),
         "HR increment = peak minus predicted maximum":
             swap({"HR_INCREMENT_CAND_REST": "HR_INCREMENT_CAND_PRED"}),
-        "HR recovery = peak minus recovery heart rate":
-            swap({f"CVDR{k}HR": f"HRR_{k}MIN_CAND" for k in (1, 2, 3)}),
+        "HR recovery = raw recovery heart rate (previous definition)":
+            swap({f"HRR_{k}MIN_CAND": f"CVDR{k}HR" for k in (1, 2, 3)}),
         "eGFR = CKD-EPI 2009": swap({"eGFR": "eGFR_CKDEPI2009_CAND"}),
         "Glycated albumin = percent (SSGALBP)": swap({"SSGALB": "SSGALBP"}),
         "Coronary heart disease (MCQ160C) instead of heart attack":

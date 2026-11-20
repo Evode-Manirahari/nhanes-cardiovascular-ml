@@ -69,7 +69,11 @@ CATEGORICAL = ["RIAGENDR", "RIDRETH1", "INDHHINC", "PAQ180", "CVDFITLV", "BPQ020
 # The paper's text names "myocardial infarction" (Methods 2.4) and "Heart attack" (Table 1),
 # which is NHANES MCQ160E. The working crosswalk mapped this row to MCQ160C (coronary heart
 # disease), so the model input is replaced here; MCQ160C stays available for sensitivity runs.
-REPLACED = {"MCQ160C": "MCQ160E"}
+REPLACED = {"MCQ160C": "MCQ160E",
+            # Heart-rate recovery = peak exercise HR minus recovery HR: the definition in the
+            # same authors' 2023 NHANES paper (Lin, Lin & Chuang, IJCRP 2023;18:200203,
+            # Methods 2.3). CDC's CVDR1HR-CVDR3HR are the recovery heart rates themselves.
+            "CVDR1HR": "HRR_1MIN_CAND", "CVDR2HR": "HRR_2MIN_CAND", "CVDR3HR": "HRR_3MIN_CAND"}
 REPLACED_NAMES = {"MCQ160E": "Heart attack history"}
 CATEGORICAL_ALTERNATES = ["MCQ160C"]  # encoded as categories when used in sensitivity runs
 FIVE = ["RIDAGEYR", "RIAGENDR", "PAQ180", "SSTNT", "SSBNP"]
