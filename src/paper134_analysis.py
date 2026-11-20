@@ -765,9 +765,17 @@ def fig_pdp(model, sample, X):
 
 # ----------------------------------------------------------------------------
 def main():
+    global OUT
     ap = argparse.ArgumentParser()
     ap.add_argument("--fast", action="store_true", help="approximate quick run")
-    fast = ap.parse_args().fast
+    ap.add_argument("--dataset", choices=["full", "replication"], default="full",
+                    help="full: every public measurement (results/models_v0.2); "
+                         "replication: paper-faithful data (results/models_v0.2_replication)")
+    args = ap.parse_args()
+    fast = args.fast
+    if args.dataset == "replication":
+        M.CAND = M.REPLICATION
+        OUT = ROOT / "results" / "models_v0.2_replication"
     OUT.mkdir(parents=True, exist_ok=True)
     M.OUT = OUT
     X, y, cyc, names = M.load()
@@ -926,7 +934,7 @@ def main():
     temp = temporal(X, y, cyc, feats)
     temp.to_csv(OUT / "temporal_validation.csv", index=False)
 
-    json.dump({"fast_mode": fast, "n": len(X), "deaths": int(y.sum()), "seed": SEED,
+    json.dump({"fast_mode": fast, "dataset": M.CAND.name, "n": len(X), "deaths": int(y.sum()), "seed": SEED,
                "provisional_definitions": M.PROVISIONAL, "categorical_predictors": M.CATEGORICAL,
                "top_five_by_our_shap": ours,
                "our_top_five_equals_papers_five": same,

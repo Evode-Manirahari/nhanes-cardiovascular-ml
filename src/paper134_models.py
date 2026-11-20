@@ -52,7 +52,8 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
-CAND = ROOT / "results" / "paper134_candidate_v0.1.pkl"
+CAND = ROOT / "results" / "paper134_candidate_v0.1.pkl"  # full data (default)
+REPLICATION = ROOT / "results" / "paper134_replication_v0.1.pkl"  # paper-faithful
 CROSS = ROOT / "results" / "paper_134_feature_audit.csv"
 OUT = ROOT / "results" / "models_v0.1"
 SEED = 42
@@ -101,9 +102,10 @@ def load():
     feats = [r["Dataset column"] if isinstance(r["Dataset column"], str)
              else PROVISIONAL[r["Paper code"]] for _, r in cross.iterrows()]
     feats = [REPLACED.get(f, f) for f in feats]
-    mi = pd.concat([pd.read_sas(ROOT / f"data/raw/{f}.xpt", format="xport")[["SEQN", "MCQ160E"]]
-                    for f in ("MCQ", "MCQ_B", "MCQ_C")]).set_index("SEQN")["MCQ160E"]
-    c["MCQ160E"] = mi.reindex(c.index)
+    if "MCQ160E" not in c:  # the replication dataset stores its own (yes/no) coding
+        mi = pd.concat([pd.read_sas(ROOT / f"data/raw/{f}.xpt", format="xport")[["SEQN", "MCQ160E"]]
+                        for f in ("MCQ", "MCQ_B", "MCQ_C")]).set_index("SEQN")["MCQ160E"]
+        c["MCQ160E"] = mi.reindex(c.index)
     assert len(feats) == 134 and len(set(feats)) == 134
     assert not FORBIDDEN & set(feats)
     names = {**dict(zip(feats, cross["Paper feature"])), **REPLACED_NAMES}
