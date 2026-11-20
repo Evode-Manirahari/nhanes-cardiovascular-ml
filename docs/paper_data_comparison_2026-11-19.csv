@@ -1,0 +1,135 @@
+paper_variable,candidate_column,model_column,paper_valid,candidate_valid,model_valid,difference,count_matches
+Gender,RIAGENDR,RIAGENDR,9957,9957,9957,0,True
+Age,RIDAGEYR,RIDAGEYR,9957,9957,9957,0,True
+Race,RIDRETH1,RIDRETH1,9957,9957,9957,0,True
+Income,INDHHINC,INDHHINC,8818,8842,8842,24,False
+Resting heart rate,BPXPLS,BPXPLS,8778,8778,8778,0,True
+Extracellular fluid,BIDECF,BIDECF,1781,1781,1781,0,True
+Total water body,BIDTBW,BIDTBW,1781,1781,1781,0,True
+Intracellular fluid,BIDICF,BIDICF,1781,1781,1781,0,True
+Fat free mass,BIDFFM,BIDFFM,1781,1781,1781,0,True
+Fat mass,BIDFAT,BIDFAT,1781,1781,1781,0,True
+Body mass index,BMXBMI,BMXBMI,8748,8748,8748,0,True
+Upper leg length,BMXLEG,BMXLEG,8562,8562,8562,0,True
+Calf circumference,BMXCALF,BMXCALF,8683,8683,8683,0,True
+Upper arm length,BMXARML,BMXARML,8739,8739,8739,0,True
+Arm circumference,BMXARMC,BMXARMC,8740,8740,8740,0,True
+Waist circumference,BMXWAIST,BMXWAIST,8607,8607,8607,0,True
+Thigh circumference,BMXTHICR,BMXTHICR,8493,8493,8493,0,True
+Triceps skinfold,BMXTRI,BMXTRI,8022,8022,8022,0,True
+Subscapular skinfold,BMXSUB,BMXSUB,6992,6992,6992,0,True
+Predicted VO2max,CVDVOMAX,CVDVOMAX,1140,1140,1140,0,True
+Heart rate before exercise,CVDWHR,CVDWHR,922,922,922,0,True
+Heart rate increment,HR_INCREMENT_CAND_REST,HR_INCREMENT_CAND_REST,1023,1023,1023,0,True
+Maximum heart rate,MAX_HR,MAX_HR,1023,1023,1023,0,True
+Heart rate recovery 1min,CVDR1HR,CVDR1HR,885,950,950,65,False
+Heart rate recovery 2min,CVDR2HR,CVDR2HR,923,995,995,72,False
+Heart rate recovery 3min,CVDR3HR,CVDR3HR,424,471,471,47,False
+Estimated VO2max,CVDESVO2,CVDESVO2,907,907,907,0,True
+Cardiovascular fitness level,CVDFITLV,CVDFITLV,907,907,907,0,True
+Glycohemoglobin,LBXGH,LBXGH,8719,8719,8719,0,True
+Phosphorus,LBXSPH,LBXSPH,8541,8541,8541,0,True
+Bilirubin,LBXSTB,LBXSTB,8540,8540,8540,0,True
+Total protein,LBXSTP,LBXSTP,8538,8538,8538,0,True
+Triglyceride,LBXSTR,LBXSTR,8542,8542,8542,0,True
+Uric acid,LBXSUA,LBXSUA,8541,8541,8541,0,True
+Sodium,LBXSNASI,LBXSNASI,8541,8541,8541,0,True
+Potassium,LBXSKSI,LBXSKSI,8541,8541,8541,0,True
+Chloride,LBXSCLSI,LBXSCLSI,8538,8538,8538,0,True
+Osmolality,LBXSOSSI,LBXSOSSI,8541,8541,8541,0,True
+Globulin,LBXSGB,LBXSGB,8538,8538,8538,0,True
+Physical activity,PAQ180,PAQ180,9952,9952,9952,0,True
+MET score,MET_MIN_30D_CAND,MET_MIN_30D_CAND,4741,4741,4741,0,True
+NT-proBNP,SSBNP,SSBNP,7967,7967,7967,0,True
+Testosterone,SSTESTO,SSTESTO,601,601,601,0,True
+Sex hormone binding protein,SSSHBG,SSSHBG,598,598,598,0,True
+Estradiol,SSSE2,SSSE2,601,601,601,0,True
+Androstanedione glucuronide,SS3ADLG,SS3ADLG,592,592,592,0,True
+Troponin-T,SSTNT,SSTNT,7965,7966,7966,1,False
+Cadmium,LBXBCD,LBXBCD,2994,8721,8721,5727,False
+Lead,LBXBPB,LBXBPB,2994,8721,8721,5727,False
+Folate(RBC),LBXRBF,LBXRBF,2987,8683,8683,5696,False
+Mercury,LBXTHG,LBXTHG,354,3718,3718,3364,False
+Vitamin B12,LBXB12,LBXB12,2946,8609,8609,5663,False
+Cotinine,LBXCOT,LBXCOT,5785,8499,8499,2714,False
+White blood cell count,LBXWBCSI,LBXWBCSI,8731,8731,8731,0,True
+Lymphocyte percentage,LBXLYPCT,LBXLYPCT,8690,8690,8690,0,True
+Monocyte percentage,LBXMOPCT,LBXMOPCT,8690,8690,8690,0,True
+Neutrophil percentage,LBXNEPCT,LBXNEPCT,8690,8690,8690,0,True
+Eosinophil percentage,LBXEOPCT,LBXEOPCT,8690,8690,8690,0,True
+Basophil percentage,LBXBAPCT,LBXBAPCT,8690,8690,8690,0,True
+Lymphocyte count,LBDLYMNO,LBDLYMNO,8690,8690,8690,0,True
+Monocyte count,LBDMONO,LBDMONO,8690,8690,8690,0,True
+Neutrophil count,LBDNENO,LBDNENO,8690,8690,8690,0,True
+Eosinophil count,LBDEONO,LBDEONO,8690,8690,8690,0,True
+Basophil count,LBDBANO,LBDBANO,8690,8690,8690,0,True
+Red blood cell count,LBXRBCSI,LBXRBCSI,8731,8731,8731,0,True
+Hemoglobin,LBXHGB,LBXHGB,8731,8731,8731,0,True
+Hematocrit,LBXHCT,LBXHCT,8731,8731,8731,0,True
+Mean cell volume,LBXMCVSI,LBXMCVSI,8731,8731,8731,0,True
+Mean cell hemoglobin,LBXMCHSI,LBXMCHSI,8731,8731,8731,0,True
+MCHC,LBXMC,LBXMC,8731,8731,8731,0,True
+Red cell distribution width,LBXRDW,LBXRDW,8731,8731,8731,0,True
+Platelet count,LBXPLTSI,LBXPLTSI,8731,8731,8731,0,True
+Plasma glucose,LBXGLU,LBXGLU,2829,4258,4258,1429,False
+C-peptide,LBXCPSI,LBXCPSI,2790,4187,4187,1397,False
+Insulin,LBXIN,LBXIN,2791,4188,4188,1397,False
+C-reactive protein,LBXCRP,LBXCRP,8607,8607,8607,0,True
+Bone alkaline phosphatase,LBXBAP,LBXBAP,6369,6369,6369,0,True
+Total cholesterol [reference assay],LBXTC,LBXTC,8551,8551,8551,0,True
+High density lipoprotein,LBDHDL,LBDHDL,8549,8549,8549,0,True
+Albumin,LBXSAL,LBXSAL,8541,8541,8541,0,True
+ALT,LBXSATSI,LBXSATSI,8541,8541,8541,0,True
+AST,LBXSASSI,LBXSASSI,8541,8541,8541,0,True
+Alkaline phosphatase,LBXSAPSI,LBXSAPSI,8541,8541,8541,0,True
+BUN,LBXSBU,LBXSBU,8541,8541,8541,0,True
+Calcium,LBXSCA,LBXSCA,8541,8541,8541,0,True
+Total cholesterol [biochemistry profile],LBXSCH,LBXSCH,8543,8543,8543,0,True
+Gamma-GT,LBXSGTSI,LBXSGTSI,8541,8541,8541,0,True
+Serum glucose,LBXSGL,LBXSGL,8541,8541,8541,0,True
+Iron,LBXSIR,LBXSIR,8540,8540,8540,0,True
+LDH,LBXSLDSI,LBXSLDSI,8539,8539,8539,0,True
+Telomere length,TELOMEAN,TELOMEAN,5017,5017,5017,0,True
+SD of mean Telomere length,TELOSTD,TELOSTD,5017,5017,5017,0,True
+Hypertension history,BPQ020,BPQ020,9957,9902,9902,-55,False
+DNA methylation: HorvathAge,HorvathAge,HorvathAge,2532,2532,2532,0,True
+DNA methylation: HannumAge,HannumAge,HannumAge,2532,2532,2532,0,True
+DNA methylation: SkinBloodAge,SkinBloodAge,SkinBloodAge,2532,2532,2532,0,True
+DNA methylation: PhenoAge,PhenoAge,PhenoAge,2532,2532,2532,0,True
+DNA methylation: LinAge,LinAge,LinAge,2532,2532,2532,0,True
+DNA methylation: WeidnerAge,WeidnerAge,WeidnerAge,2532,2532,2532,0,True
+DNA methylation: VidalBraloAge,VidalBraloAge,VidalBraloAge,2532,2532,2532,0,True
+DNA methylation: YangCell,YangCell,YangCell,2532,2532,2532,0,True
+DNA methylation: ZhangAge,ZhangAge,ZhangAge,2532,2532,2532,0,True
+DNA methylation: GrimAgeMort,GrimAgeMort,GrimAgeMort,2532,2532,2532,0,True
+DNA methylation: GrimAge2Mort,GrimAge2Mort,GrimAge2Mort,2532,2532,2532,0,True
+DNA methylation: DunedinPoAm,DunedinPoAm,DunedinPoAm,2532,2532,2532,0,True
+DNA methylation: HorvathTelo,HorvathTelo,HorvathTelo,2532,2532,2532,0,True
+DNA methylation: ADMMort,ADMMort,ADMMort,2532,2532,2532,0,True
+DNA methylation: B2MMort,B2MMort,B2MMort,2532,2532,2532,0,True
+DNA methylation: CystatinCMort,CystatinCMort,CystatinCMort,2532,2532,2532,0,True
+DNA methylation: GDF15Mort,GDF15Mort,GDF15Mort,2532,2532,2532,0,True
+DNA methylation: LeptinMort,LeptinMort,LeptinMort,2532,2532,2532,0,True
+DNA methylation: logA1CMort,logA1CMort,logA1CMort,2532,2532,2532,0,True
+DNA methylation: CRPMort,CRPMort,CRPMort,2532,2532,2532,0,True
+DNA methylation: PACKYRSMort,PACKYRSMort,PACKYRSMort,2532,2532,2532,0,True
+DNA methylation: PAI1Mort,PAI1Mort,PAI1Mort,2532,2532,2532,0,True
+DNA methylation: TIMP1Mort,TIMP1Mort,TIMP1Mort,2532,2532,2532,0,True
+DNA methylation: XY_Estimation,XY_Estimation,XY_Estimation,2532,2532,2532,0,True
+DNA methylation: CD8TPP,CD8TPP,CD8TPP,2532,2532,2532,0,True
+DNA methylation: CD4TPP,CD4TPP,CD4TPP,2532,2532,2532,0,True
+DNA methylation: NKcell,Nkcell,Nkcell,2532,2532,2532,0,True
+DNA methylation: Bcell,Bcell,Bcell,2532,2532,2532,0,True
+DNA methylation: MonoPP,MonoPP,MonoPP,2532,2532,2532,0,True
+DNA methylation: NeuPP,NeuPP,NeuPP,2532,2532,2532,0,True
+Beta 2 Microglobulin,SSB2M,SSB2M,8013,8013,8013,0,True
+Cystatin,SSCYST,SSCYST,8019,8019,8019,0,True
+Glycated albumin,SSGALB,SSGALB,8012,8012,8012,0,True
+eGFR,eGFR,eGFR,8541,8541,8541,0,True
+Heart failure history,MCQ160B,MCQ160B,9957,9956,9956,-1,False
+Coronary artery disease history,MCQ160C,MCQ160E,9957,9956,9956,-1,False
+Cerebrovascular event history,MCQ160F,MCQ160F,9957,9956,9956,-1,False
+Taking hyperlipidemia medication,DERIVED_HL_MED,DERIVED_HL_MED,9957,9786,9786,-171,False
+Taking hypertension medication,DERIVED_HTN_MED,DERIVED_HTN_MED,9957,9806,9806,-151,False
+Taking diabetes medication,DERIVED_DM_MED,DERIVED_DM_MED,9957,9784,9784,-173,False
+Diabetes history,DIQ010,DIQ010,9957,9955,9955,-2,False

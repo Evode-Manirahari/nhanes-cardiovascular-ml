@@ -8,6 +8,14 @@ We are also exploring a research question:
 
 **If several machine-learning models predict mortality similarly well, do they agree on which factors are most important for the same person?**
 
+### Current 134-predictor candidate analysis
+
+The current pipeline builds a 134-predictor candidate dataset and evaluates Logistic Regression, Random Forest, XGBoost, and LightGBM with stratified five-fold cross-validation. Their out-of-fold ROC-AUC scores are 0.853, 0.863, 0.872, and 0.869, respectively. The [results notebook](notebooks/06_paper134_results.ipynb) displays the model comparisons, calibration, feature importance, SHAP agreement, and survival analysis. The [mortality notebook](notebooks/04_cvd_mortality_outcome.ipynb) independently links all 9,957 cohort members to CDC records and confirms the stored five-year outcome: 1,293 all-cause deaths, including 486 cardiovascular deaths.
+
+Run `.venv/bin/python src/paper134_build.py`, then `.venv/bin/python src/paper134_analysis.py`, followed by `.venv/bin/python -m unittest discover -s tests` to reproduce and check the analysis. Generated datasets and results are local files excluded from Git. Several predictor definitions remain provisional; the results notebook lists the departures from the paper and unresolved questions.
+
+### Earlier exploratory analysis (142 predictors)
+
 ### Dataset
 
 We are working with NHANES 1999–2004 data.
@@ -17,7 +25,7 @@ We are working with NHANES 1999–2004 data.
 - Five-year mortality outcomes: 1,293 deaths and 8,664 non-deaths
 - Current prediction target: 5-year all-cause mortality
 
-Our expanded experiments currently use 142 exploratory candidate predictors. The exact 134-predictor feature set described in the reference paper is still being reconstructed.
+The earlier expanded experiments used 142 exploratory candidate predictors. The later 134-predictor candidate analysis is described above.
 
 ### Machine Learning Models
 
@@ -60,13 +68,13 @@ These results are exploratory. Explanation agreement can change with the backgro
 
 **Completed:** NHANES cohort construction; initial feature engineering; majority-class baseline; three-feature and 142-feature Logistic Regression/Random Forest evaluations with stratified five-fold cross-validation; individual held-out prediction comparison; preliminary SHAP agreement and background-sensitivity experiments.
 
-**In progress:** Auditing the 142 candidate predictors and their NHANES codebooks, including special missing-value codes; reconstructing the exact 134-predictor paper feature set; validating five-year follow-up and censoring; parsing and linking the locally downloaded CDC 2019 public-use cause-of-death files; defining cardiovascular-specific mortality; and assessing explanation stability over additional training splits and participants.
+**Subsequent work:** The current candidate analysis includes a variable evidence report, CDC mortality linkage and follow-up checks, cardiovascular death classification, and explanation comparisons across five folds. Exact paper definitions remain unresolved for several predictors.
 
 ### Important Limitations
 
 - All model results shown here predict **5-year all-cause mortality**, **not** cardiovascular-specific mortality.
 - The current 142-predictor experiment is exploratory and has not undergone a complete predictor/codebook audit or exact 134-feature replication.
-- The preliminary binary outcome needs a follow-up/censoring audit; a zero label does not necessarily establish observation for all 60 months.
+- The later CDC linkage confirms at least 60 months of follow-up for cohort members labeled as five-year survivors.
 - Model output scores are **uncalibrated** (both models use class weighting) and should not be interpreted as validated personal risk probabilities.
 - SHAP results are based on a single training/test split and a small participant sample; different reference/background samples can alter explanations.
 - These models are research prototypes, **not** tools for clinical decisions.
@@ -77,6 +85,7 @@ Python, pandas, NumPy, SciPy, scikit-learn, SHAP, Jupyter Notebook, and Git.
 
 - Experiments: [`notebooks/03_onehot_baseline_cv.ipynb`](notebooks/03_onehot_baseline_cv.ipynb)
 - Detailed methodology: [`docs/methodology.md`](docs/methodology.md)
-- Mortality linkage in progress: `notebooks/04_cvd_mortality_outcome.ipynb` (not yet validated)
+- Mortality linkage and validation: [`notebooks/04_cvd_mortality_outcome.ipynb`](notebooks/04_cvd_mortality_outcome.ipynb)
+- Current 134-predictor candidate analysis: [`notebooks/06_paper134_results.ipynb`](notebooks/06_paper134_results.ipynb)
 
 Raw NHANES files and locally generated data checkpoints are excluded from GitHub.

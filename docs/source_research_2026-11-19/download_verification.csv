@@ -1,0 +1,15 @@
+file,bytes,download_sha256,same_as_local,rows,url
+DEMO.xpt,11500560,a17bd1ebfd6007b8dc93f16259cb090678eb6c467a39363b7e932bba15febf89,True,9965,https://wwwn.cdc.gov/Nchs/Data/Nhanes/Public/1999/DataFiles/DEMO.xpt
+DEMO_B.xpt,3273520,6458dc2307cee244ab6ba26f70ec78c7b842ffc68e668bc43f0ab6b9737937d9,True,11039,https://wwwn.cdc.gov/Nchs/Data/Nhanes/Public/2001/DataFiles/DEMO_B.xpt
+DEMO_C.xpt,3569840,2a2fdb88263337bfa06f0516bfb419631595f0a0ee88fb96069bed13d1857c6f,True,10122,https://wwwn.cdc.gov/Nchs/Data/Nhanes/Public/2003/DataFiles/DEMO_C.xpt
+L06BMT_C.xpt,662960,0c57f6a5e800a0f2a72191596f5725ee452365a194d49b689af6c66dfab1bf29,True,9179,https://wwwn.cdc.gov/Nchs/Data/Nhanes/Public/2003/DataFiles/L06BMT_C.xpt
+L06COT_C.xpt,138000,3a4ddfa4d3b794e2462e7ca7fedae98b71754b0c64bdd92eb49f131d087435b0,True,8556,https://wwwn.cdc.gov/Nchs/Data/Nhanes/Public/2003/DataFiles/L06COT_C.xpt
+L06NB_C.xpt,515840,19fd14bd89b228e78782d130964c39a35a7cd03ad5f0fc1442f7ee168e35c918,True,9179,https://wwwn.cdc.gov/Nchs/Data/Nhanes/Public/2003/DataFiles/L06NB_C.xpt
+L06_B.xpt,1751360,92e31c9dc039a973dcd769852010cc78984a6a235fa0d2f802aa5e76b4cca051,True,9929,https://wwwn.cdc.gov/Nchs/Data/Nhanes/Public/2001/DataFiles/L06_B.xpt
+L10AM_C.xpt,189760,d2d24e6eb04b4fa55753e410603a00e07a69990f009918e3da9e45917514dbf7,True,3356,https://wwwn.cdc.gov/Nchs/Data/Nhanes/Public/2003/DataFiles/L10AM_C.xpt
+LAB06.xpt,2903440,5ae7ee4a4b7be64b044af9a2f2987129790524c682db0b2b9b2e1672b74012e5,True,8832,https://wwwn.cdc.gov/Nchs/Data/Nhanes/Public/1999/DataFiles/LAB06.xpt
+SSTROP_A.xpt,2089760,ced6b9101648d07bf7314d9393284d812f0d0b2c8226a0eca1a113cabd2c7a5b,True,21743,https://wwwn.cdc.gov/Nchs/Data/Nhanes/Public/1999/DataFiles/SSTROP_A.xpt
+PH.xpt,1345920,a411b8d188450a945adce0a12397325acbc60381df6cdb7618befbc94c90ad4f,not present locally,8832,https://wwwn.cdc.gov/Nchs/Data/Nhanes/Public/1999/DataFiles/PH.xpt
+PH_B.xpt,1512720,fc190c716226078e3c07dd9faf62346e51b5200c98f6bb6b986c22d5fca0e8a4,not present locally,9929,https://wwwn.cdc.gov/Nchs/Data/Nhanes/Public/2001/DataFiles/PH_B.xpt
+PH_C.xpt,1398720,4765432fb6884d61147683e51c24a13ad4376c711f9dc8194fb4f0f68756c9ea,not present locally,9179,https://wwwn.cdc.gov/Nchs/Data/Nhanes/Public/2003/DataFiles/PH_C.xpt
+SSNH4THY.xpt,146720,30aa4baa805b43d19aad52e1b2698e9d3afe91c5ead1350a1b37adaefdebcc69,not present locally,2010,https://wwwn.cdc.gov/Nchs/Data/Nhanes/Public/2001/DataFiles/SSNH4THY.xpt

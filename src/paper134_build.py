@@ -143,7 +143,9 @@ def derive(cohort: pd.DataFrame, d: pd.DataFrame) -> pd.DataFrame:
     pa = pa[pa["SEQN"].isin(cohort.index)]
     pa["MET_MIN"] = pa["PADMETS"] * pa["PADTIMES"] * pa["PADDURAT"]
     g = pa.groupby("SEQN")
-    out["MET_MIN_30D_CAND"] = g["MET_MIN"].sum(min_count=0).reindex(cohort.index)
+    # min_count=1: someone whose every activity record lacks times or minutes has an
+    # unknown MET score, not zero (5 cohort members; Table S1 count becomes 4736 vs 4741).
+    out["MET_MIN_30D_CAND"] = g["MET_MIN"].sum(min_count=1).reindex(cohort.index)
     out["MET_SUM_CAND"] = g["PADMETS"].sum().reindex(cohort.index)
     out["PAQIAF_N_ACTIVITIES"] = g.size().reindex(cohort.index)
 

@@ -278,7 +278,8 @@ def cv_everything(X, y, feats, fast):
         for m in MAIN:
             oof.iloc[te, oof.columns.get_loc(m)] = fitted[m].predict_proba(mats[KIND[m]][1])[:, 1]
         # Paper 2.3 says no feature scaling: plain logistic regression on unscaled inputs
-        raw_lr = LogisticRegression(max_iter=3000).fit(mats["imp"][0], ytr)
+        with M.threadpool_limits(limits=1, user_api="blas"):  # keeps this ill-conditioned fit repeatable
+            raw_lr = LogisticRegression(max_iter=3000).fit(mats["imp"][0], ytr)
         oof.iloc[te, -1] = raw_lr.predict_proba(mats["imp"][1])[:, 1]
 
         rng = np.random.default_rng(SEED + f)

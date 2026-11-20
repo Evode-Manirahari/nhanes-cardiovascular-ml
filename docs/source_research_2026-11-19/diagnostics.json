@@ -1,0 +1,14 @@
+{
+  "met_people_with_activity_records": 4741,
+  "met_all_contributions_missing_but_current_zero": 5,
+  "met_any_missing_contribution": 9,
+  "met_nonmissing_with_min_count_1": 4736,
+  "fasting_duration_available": 8905,
+  "alternate_thyroid_TSH_observed": 829,
+  "alternate_thyroid_T4_observed": 833,
+  "alternate_thyroid_additional_TSH": 1,
+  "alternate_thyroid_additional_T4": 0,
+  "insulin_forward_adjustment_negative_values": 4,
+  "PAQ180_nonmissing_after_removing_7_9": 9928,
+  "INDHHINC_nonmissing_after_removing_77_99": 8797
+}

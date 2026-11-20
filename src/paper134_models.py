@@ -34,7 +34,7 @@ warnings.filterwarnings("ignore")
 
 from sklearn.experimental import enable_iterative_imputer  # noqa: F401,E402
 from sklearn.impute import IterativeImputer, SimpleImputer  # noqa: E402
-from sklearn.linear_model import LogisticRegression  # noqa: E402
+from sklearn.linear_model import LogisticRegression, Ridge  # noqa: E402
 from sklearn.ensemble import RandomForestClassifier  # noqa: E402
 from sklearn.metrics import (average_precision_score, brier_score_loss,  # noqa: E402
                              precision_recall_curve, roc_auc_score, roc_curve)
@@ -43,6 +43,7 @@ from sklearn.preprocessing import StandardScaler  # noqa: E402
 from scipy.stats import spearmanr  # noqa: E402
 from scipy.cluster.hierarchy import fcluster, linkage  # noqa: E402
 import lightgbm as lgb  # noqa: E402
+from threadpoolctl import threadpool_limits  # noqa: E402
 import xgboost as xgb  # noqa: E402
 import shap  # noqa: E402
 import matplotlib  # noqa: E402
@@ -122,17 +123,24 @@ class Prep:
         self.levels = {c: sorted(X[c].fillna(self.mode[c]).unique()) for c in self.cat}
         self.imp = None
         if impute and self.num:
-            # n_nearest_features keeps the chained-equation imputer tractable.
-            # full=True: all predictors, 10 rounds (paper 2.3). full=False: fast approximation.
-            kw = {} if full else {"max_iter": 5, "n_nearest_features": 20}
-            # Imputed values are bounded to the range observed in the training fold:
-            # the 30 DNA-methylation variables are jointly missing and collinear, and
-            # the unbounded chained equations diverge (values near 1e48).
-            self.imp = IterativeImputer(random_state=SEED, initial_strategy="median",
-                                        skip_complete=True,
-                                        min_value=np.nanmin(X[self.num].to_numpy(), axis=0),
-                                        max_value=np.nanmax(X[self.num].to_numpy(), axis=0), **kw)
-            self.imp.fit(X[self.num])
+            # Iterative multivariable imputation (paper 2.3), made numerically stable:
+            #  * predictors are standardized first (their raw scales differ by 10^7);
+            #  * each regression has a fixed ridge penalty, because many predictors are
+            #    missing together and are near-exact linear combinations of one another
+            #    (e.g. the 30 DNA-methylation variables). Without it the chained
+            #    equations amplify rounding noise and two runs give unrelated values;
+            #  * imputed values are kept inside the range observed in the training fold.
+            A = X[self.num].to_numpy(float)
+            self.mu, self.sd = np.nanmean(A, axis=0), np.nanstd(A, axis=0)
+            self.sd[self.sd == 0] = 1.0
+            lo, hi = np.nanmin(A, axis=0), np.nanmax(A, axis=0)
+            self.imp = IterativeImputer(estimator=Ridge(alpha=10.0),
+                                        max_iter=10 if full else 3, random_state=SEED,
+                                        initial_strategy="median", skip_complete=True,
+                                        min_value=(lo - self.mu) / self.sd,
+                                        max_value=(hi - self.mu) / self.sd)
+            with threadpool_limits(limits=1, user_api="blas"):  # bit-for-bit repeatable
+                self.imp.fit((A - self.mu) / self.sd)
         return self
 
     def _cat(self, X):
@@ -150,7 +158,14 @@ class Prep:
 
     def imputed(self, X):
         cat, g = self._cat(X)
-        num = pd.DataFrame(self.imp.transform(X[self.num]), index=X.index, columns=self.num)
+        with threadpool_limits(limits=1, user_api="blas"):
+            z = self.imp.transform((X[self.num].to_numpy(float) - self.mu) / self.sd)
+        # Rounding (in standard-deviation units) removes any remaining last-digit noise;
+        # boosted trees can change a split on a difference in the 12th decimal place.
+        z = np.round(z, 6)
+        obs = X[self.num].notna().to_numpy()
+        vals = np.where(obs, X[self.num].to_numpy(float), z * self.sd + self.mu)
+        num = pd.DataFrame(vals, index=X.index, columns=self.num)
         return pd.concat([num, cat], axis=1), self.num + g
 
 
@@ -172,7 +187,8 @@ def fit_lgb(Xtr, ytr, seed=SEED):
     a, b, ya, yb = inner_split(Xtr, ytr)
     m = lgb.LGBMClassifier(n_estimators=2000, learning_rate=0.03, num_leaves=15, subsample=0.8,
                            subsample_freq=1, colsample_bytree=0.8, min_child_samples=20,
-                           n_jobs=8, random_state=seed, verbose=-1)
+                           n_jobs=8, random_state=seed, verbose=-1, deterministic=True,
+                           force_row_wise=True)
     m.fit(a, ya, eval_set=[(b, yb)], callbacks=[lgb.early_stopping(50, verbose=False)])
     return m
 

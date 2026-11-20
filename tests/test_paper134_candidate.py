@@ -84,14 +84,15 @@ S1_EXACT = {"RIAGENDR": 9957, "RIDAGEYR": 9957, "BPXPLS": 8778, "BIDECF": 1781,
             "MAX_HR": 1023, "HR_INCREMENT_CAND_REST": 1023, "HR_INCREMENT_CAND_PRED": 1023,
             "HRR_1MIN_CAND": 885, "HRR_2MIN_CAND": 923, "HRR_3MIN_CAND": 424,
             "CVDESVO2": 907, "LBXGH": 8719, "LBXSTR": 8542, "LBXTC": 8551, "LBXSCH": 8543,
-            "LBDHDL": 8549, "LBXBAP": 6369, "PAQ180": 9952, "MET_MIN_30D_CAND": 4741,
+            "LBDHDL": 8549, "LBXBAP": 6369, "PAQ180": 9952,
             "SSBNP": 7967, "SSTESTO": 601, "SSSHBG": 598, "SS3ADLG": 592, "SSB2M": 8013,
             "SSCYST": 8019, "SSGALB": 8012, "eGFR": 8541, "TELOMEAN": 5017,
             "HorvathAge": 2532, "LBXWBCSI": 8731, "LBXLYPCT": 8690}
 # Documented, unexplained differences from S1: (column, paper valid, candidate valid)
 S1_KNOWN_DIFF = [("INDHHINC", 8818, 8842), ("SSTNT", 7965, 7966), ("BPQ020", 9957, 9902),
                  ("LBXBCD", 2994, 8721), ("LBXTHG", 354, 3718), ("LBXGLU", 2829, 4258),
-                 ("LBXCOT", 5785, 8499), ("DERIVED_HTN_MED", 9957, 9806)]
+                 ("LBXCOT", 5785, 8499), ("DERIVED_HTN_MED", 9957, 9806),
+                 ("MET_MIN_30D_CAND", 4741, 4736)]  # 5 with no usable activity data -> missing
 
 
 def raw(stem):
@@ -179,7 +180,7 @@ class TestPaper134Candidate(unittest.TestCase):
         pa = pd.concat([pd.read_sas(RAW / f"{s}.xpt", format="xport")
                         for s in ["PAQIAF", "PAQIAF_B", "PAQIAF_C"]])
         pa = pa[pa.SEQN.isin(self.c.index)]
-        exp = (pa.PADMETS * pa.PADTIMES * pa.PADDURAT).groupby(pa.SEQN).sum()
+        exp = (pa.PADMETS * pa.PADTIMES * pa.PADDURAT).groupby(pa.SEQN).sum(min_count=1)
         got = self.c["MET_MIN_30D_CAND"]
         self.assertTrue(same(got.reindex(exp.index), exp).all())
         self.assertTrue(got[~got.index.isin(exp.index)].isna().all())
